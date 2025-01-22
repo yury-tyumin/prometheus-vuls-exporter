@@ -39,30 +39,35 @@ func removeDuplicateValues(stringSlice []string) []string {
 }
 
 // Function to determine the preferred CVSS version
-func getCVSS(c gjson.Result, preferredVersion string) string {
+func getCvssSeverity(c gjson.Result, preferredVersion string) string {
 
-	var cvssAttribute string
+	var severityAttribute string
 	switch preferredVersion {
 	case "v4":
-		cvssAttribute = "cvss40Severity"
+		severityAttribute = "cvss40Severity"
 	case "v3":
-		cvssAttribute = "cvss3Severity"
+		severityAttribute = "cvss3Severity"
 	case "v2":
-		cvssAttribute = "cvss2Severity"
+		severityAttribute = "cvss2Severity"
 	default:
 		return "UNKNOWN"
 	}
 
-	cvssSeverities := c.Get(fmt.Sprintf("cveContents.@values.@flatten.#.%s", cvssAttribute))
+	return getCveContentValue(c, severityAttribute)
+}
 
-	var severitiesSlice []string
-	for _, sev := range cvssSeverities.Array() {
-		severitiesSlice = append(severitiesSlice, sev.String())
+func getCveContentValue(c gjson.Result, attribute string) string {
+
+	path := c.Get(fmt.Sprintf("cveContents.@values.@flatten.#.%s", attribute))
+
+	var slice []string
+	for _, sev := range path.Array() {
+		slice = append(slice, sev.String())
 	}
 
-	uniqueSeverities := removeDuplicateValues(severitiesSlice)
-	if len(uniqueSeverities) > 0 {
-		return strings.ToLower(uniqueSeverities[0])
+	unique := removeDuplicateValues(slice)
+	if len(unique) > 0 {
+		return strings.ToLower(unique[0])
 	} else {
 		return "UNKNOWN"
 	}
@@ -118,14 +123,14 @@ func parseReport(file os.FileInfo, cvssVersion string) Report {
 		cve := CVEInfo{
 			id:           c.Get("cveID").String(),
 			packageName:  packageName,
-			severity:     getCVSS(c, cvssVersion),
+			severity:     getCvssSeverity(c, cvssVersion),
 			fixState:     fixState,
 			notFixedYet:  notFixedYet,
-			title:        c.Get("cveContents.nvd.title").String(),
-			summary:      c.Get("cveContents.nvd.summary").String(),
-			published:    c.Get("cveContents.nvd.published").String(),
-			lastModified: c.Get("cveContents.nvd.lastModified").String(),
-			mitigation:   c.Get("cveContents.nvd.mitigation").String(),
+			title:        getCveContentValue(c,"title"),
+			summary:      getCveContentValue(c,"summary"),
+			published:    getCveContentValue(c,"published"),
+			lastModified: getCveContentValue(c,"lastModified"),
+			mitigation:   getCveContentValue(c,"mitigation"),
 		}
 		cves = append(cves, cve)
 	}
