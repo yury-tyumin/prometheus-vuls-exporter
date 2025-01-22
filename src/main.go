@@ -15,6 +15,7 @@ import (
 )
 
 func init() {
+	flag.String("cvss_version", "v2", "The version of Common Vulnerability Scoring System.")
 	flag.String("reports_dir", "", "The folder where Vulns stores JSON reports.")
 	flag.String("address", ":8080", "The address to listen on for HTTP requests.")
 	flag.String("log_format", "LONG", "Log format - LONG or SHORT.")
@@ -49,7 +50,7 @@ func main() {
 	metrics.CreateMetrics(viper.GetString("reports_dir"))
 
 	authHandler := utils.HTTPBasicAuthHandler(viper.GetString("basic_username"), viper.GetString("basic_password"))
-	metricCollectionHandler := metrics.MetricCollectionHandler(viper.GetString("reports_dir"))
+	metricCollectionHandler := metrics.MetricCollectionHandler(viper.GetString("reports_dir"), viper.GetString("cvss_version"))
 	promHandler := promhttp.Handler().(http.HandlerFunc)
 	handler := utils.Use(
 		promHandler,

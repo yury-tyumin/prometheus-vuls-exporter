@@ -38,7 +38,38 @@ func removeDuplicateValues(stringSlice []string) []string {
 	return results
 }
 
-func parseReport(file os.FileInfo) Report {
+// Function to determine the preferred CVSS version
+func getCVSS(c gjson.Result, preferredVersion string) string {
+
+	var cvssAttribute string
+	switch preferredVersion {
+	case "v4":
+		cvssAttribute = "cvss40Severity"
+	case "v3":
+		cvssAttribute = "cvss3Severity"
+	case "v2":
+		cvssAttribute = "cvss2Severity"
+	default:
+		return "UNKNOWN"
+	}
+
+	cvssSeverities := c.Get(fmt.Sprintf("cveContents.@values.@flatten.#.%s", cvssAttribute))
+
+	var severitiesSlice []string
+	for _, sev := range cvssSeverities.Array() {
+		severitiesSlice = append(severitiesSlice, sev.String())
+	}
+
+	uniqueSeverities := removeDuplicateValues(severitiesSlice)
+	if len(uniqueSeverities) > 0 {
+		return strings.ToLower(uniqueSeverities[0])
+	} else {
+		return "UNKNOWN"
+	}
+
+}
+
+func parseReport(file os.FileInfo, cvssVersion string) Report {
 	var r Report
 
 	// Get basic file info
@@ -65,21 +96,6 @@ func parseReport(file os.FileInfo) Report {
 	// Vulnerability information
 	var cves []CVEInfo
 	for _, c := range getData("scannedCves").Map() {
-		var severity string
-		cvssSeverities := c.Get("cveContents.@values.@flatten.#.cvss2Severity")
-
-		var severitiesSlice []string
-		for _, sev := range cvssSeverities.Array() {
-			severitiesSlice = append(severitiesSlice, sev.String())
-		}
-
-		uniqueSeverities := removeDuplicateValues(severitiesSlice)
-		if len(uniqueSeverities) > 0 {
-			severity = strings.ToLower(uniqueSeverities[0])
-		} else {
-			severity = "UNKNOWN"
-		}
-
     // Get affected package or CPE URI
     var packageName string
 		var fixState string
@@ -102,7 +118,7 @@ func parseReport(file os.FileInfo) Report {
 		cve := CVEInfo{
 			id:           c.Get("cveID").String(),
 			packageName:  packageName,
-			severity:     severity,
+			severity:     getCVSS(c, cvssVersion),
 			fixState:     fixState,
 			notFixedYet:  notFixedYet,
 			title:        c.Get("cveContents.nvd.title").String(),

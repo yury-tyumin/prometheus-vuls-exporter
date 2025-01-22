@@ -44,6 +44,7 @@ Download the latest release binary from (GitHub Releases page)[https://github.co
 Configuration is possible via command line flags or environment variable. Possible options:
 
 * `--reports_dir` or `REPORTS_DIR` - *mandatory* - path on a filesystem where the Vulns JSON reports are; must be readable by application
+* `--cvss_version` or `CVSS_VERSION` - specifies the version of the Common Vulnerability Scoring System (CVSS) to use. It accepts values like v2, v3, or v4, determining the severity scoring model for vulnerabilities.
 * `--basic_username` or `BASIC_USERNAME`; `--basic_password` or `BASIC_PASSWORD` - if both are set, enables HTTP Basic authorization
 * `--address` or `ADDRESS` - where the server will listen for HTTP connections, defaults to `:8080`
 * `--log_format` or `LOGFORMAT` - defines whether or not to output the date to log (`LONG` or `SHORT`, respectively) , default to `LONG`
