@@ -9,7 +9,7 @@ import (
 	"prometheus-vuls-exporter/utils"
 )
 
-func collectReports(reportPath string, cvssVersion string) {
+func collectReports(reportPath string, cvssVersion string, ignoreUnfixed bool, skipSummary bool) {
 
 	// Read reports from path, remove `current` link
 	reportsDir = utils.ReadDir(reportsPath)
@@ -39,14 +39,14 @@ func collectReports(reportPath string, cvssVersion string) {
 
 		// Parse each JSON file and record the result
 		for _, file := range reportFiles {
-			report := parseReport(file, cvssVersion)
+			report := parseReport(file, cvssVersion, ignoreUnfixed, skipSummary)
 			reports = append(reports, report)
 		}
 	}
 
 }
 
-func MetricCollectionHandler(path string, cvssVersion string) func(http.HandlerFunc) http.HandlerFunc {
+func MetricCollectionHandler(path string, cvssVersion string, ignoreUnfixed bool, skipSummary bool) func(http.HandlerFunc) http.HandlerFunc {
 	reportsPath = path
 	reportsDir = utils.ReadDir(reportsPath)
 	log.Printf("Reports folder configured: %s", reportsPath)
@@ -54,7 +54,7 @@ func MetricCollectionHandler(path string, cvssVersion string) func(http.HandlerF
 	return func(h http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// Gather data from report files and write it
-			collectReports(reportsPath, cvssVersion)
+			collectReports(reportsPath, cvssVersion, ignoreUnfixed, skipSummary)
 
 			// Trigger recording of all metrics in `metrics` variable
 			for _, metric := range metrics {

@@ -15,6 +15,8 @@ import (
 )
 
 func init() {
+	flag.Bool("skip_summary", false, "Exclude summaries to reduce resource usage and data size.")
+	flag.Bool("ignore_unfixed", false, "Ignore vulnerabilities that are not fixed yet.")
 	flag.String("cvss_version", "v2", "The version of Common Vulnerability Scoring System.")
 	flag.String("reports_dir", "", "The folder where Vulns stores JSON reports.")
 	flag.String("address", ":8080", "The address to listen on for HTTP requests.")
@@ -50,7 +52,7 @@ func main() {
 	metrics.CreateMetrics(viper.GetString("reports_dir"))
 
 	authHandler := utils.HTTPBasicAuthHandler(viper.GetString("basic_username"), viper.GetString("basic_password"))
-	metricCollectionHandler := metrics.MetricCollectionHandler(viper.GetString("reports_dir"), viper.GetString("cvss_version"))
+	metricCollectionHandler := metrics.MetricCollectionHandler(viper.GetString("reports_dir"), viper.GetString("cvss_version"), viper.GetBool("ignore_unfixed"),  viper.GetBool("skip_summary"))
 	promHandler := promhttp.Handler().(http.HandlerFunc)
 	handler := utils.Use(
 		promHandler,

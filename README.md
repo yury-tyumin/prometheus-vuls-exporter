@@ -43,6 +43,8 @@ Download the latest release binary from (GitHub Releases page)[https://github.co
 
 Configuration is possible via command line flags or environment variable. Possible options:
 
+* `--skip_summary` or `SKIP_SUMMARY` - Option to exclude summary data for reduced resource usage.
+* `--ignore_unfixed` or `IGNORE_UNFIXED` - Option to ignore vulnerabilities that are not fixed yet.
 * `--reports_dir` or `REPORTS_DIR` - *mandatory* - path on a filesystem where the Vulns JSON reports are; must be readable by application
 * `--cvss_version` or `CVSS_VERSION` - specifies the version of the Common Vulnerability Scoring System (CVSS) to use. It accepts values like v2, v3, or v4, determining the severity scoring model for vulnerabilities.
 * `--basic_username` or `BASIC_USERNAME`; `--basic_password` or `BASIC_PASSWORD` - if both are set, enables HTTP Basic authorization

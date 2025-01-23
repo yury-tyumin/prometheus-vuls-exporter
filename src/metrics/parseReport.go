@@ -74,7 +74,7 @@ func getCveContentValue(c gjson.Result, attribute string) string {
 
 }
 
-func parseReport(file os.FileInfo, cvssVersion string) Report {
+func parseReport(file os.FileInfo, cvssVersion string, ignoreUnfixed bool, skipSummary bool) Report {
 	var r Report
 
 	// Get basic file info
@@ -101,38 +101,48 @@ func parseReport(file os.FileInfo, cvssVersion string) Report {
 	// Vulnerability information
 	var cves []CVEInfo
 	for _, c := range getData("scannedCves").Map() {
-    // Get affected package or CPE URI
-    var packageName string
-		var fixState string
-		var notFixedYet bool
+		var summary string
     if c.Get("affectedPackages").Exists() {
-        packageName = c.Get("affectedPackages.0.name").String()
-				fixState    = c.Get("affectedPackages.0.fixState").String()
-				notFixedYet = c.Get("affectedPackages.0.notFixedYet").Bool()
+			if skipSummary {
+				summary = ""
+			} else {
+				summary = getCveContentValue(c, "summary")
+			}
+			for _, pkg := range c.Get("affectedPackages").Array() {
+				if ignoreUnfixed && pkg.Get("notFixedYet").Bool() {
+					continue // Skip unfixed packages
+				}
+				cve := CVEInfo{
+					id:           c.Get("cveID").String(),
+					packageName:  pkg.Get("name").String(),
+					severity:     getCvssSeverity(c, cvssVersion),
+					fixState:     pkg.Get("fixState").String(),
+					notFixedYet:  pkg.Get("notFixedYet").Bool(),
+					title:        getCveContentValue(c, "title"),
+					summary:      summary,
+					published:    getCveContentValue(c, "published"),
+					lastModified: getCveContentValue(c, "lastModified"),
+					mitigation:   getCveContentValue(c, "mitigation"),
+				}
+				cves = append(cves, cve)
+			}
     } else if c.Get("cpeURIs").Exists() {
-        packageName = c.Get("cpeURIs.0").String()
-				fixState    = ""
-				notFixedYet = false
-    } else {
-				// Fallback: No affectedPackages or cpeURIs available
-				packageName = ""
-				fixState    = ""
-				notFixedYet = false
-		}
-
-		cve := CVEInfo{
-			id:           c.Get("cveID").String(),
-			packageName:  packageName,
-			severity:     getCvssSeverity(c, cvssVersion),
-			fixState:     fixState,
-			notFixedYet:  notFixedYet,
-			title:        getCveContentValue(c,"title"),
-			summary:      getCveContentValue(c,"summary"),
-			published:    getCveContentValue(c,"published"),
-			lastModified: getCveContentValue(c,"lastModified"),
-			mitigation:   getCveContentValue(c,"mitigation"),
-		}
-		cves = append(cves, cve)
+			for _, cpe := range c.Get("cpeURIs").Array() {
+				cve := CVEInfo{
+					id:           c.Get("cveID").String(),
+					packageName:  cpe.String(),
+					severity:     getCvssSeverity(c, cvssVersion),
+					fixState:     "", // No fixState for CPE URIs
+					notFixedYet:  false,
+					title:        getCveContentValue(c, "title"),
+					summary:      summary,
+					published:    getCveContentValue(c, "published"),
+					lastModified: getCveContentValue(c, "lastModified"),
+					mitigation:   getCveContentValue(c, "mitigation"),
+				}
+				cves = append(cves, cve)
+			}
+    }
 	}
 
 	r.cves = cves
